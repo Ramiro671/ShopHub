@@ -1,6 +1,26 @@
-@Catalog.Api_HostAddress = http://localhost:5059
+@host = http://localhost:5059
 
-GET {{Catalog.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Crear un producto
+POST {{host}}/products
+Content-Type: application/json
 
-###
+{
+  "name": "Teclado mecánico",
+  "description": "Switches rojos, retroiluminado",
+  "price": 1299.90
+}
+
+### 2. Listar todos los productos
+GET {{host}}/products
+
+### 3. Obtener uno por id (pega aquí el id que te devolvió el paso 1)
+GET {{host}}/products/54677d3f-745e-4651-a99b-978a6b13ae42
+
+### 4. Validación de dominio: precio negativo (debe responder 400)
+POST {{host}}/products
+Content-Type: application/json
+
+{
+  "name": "Producto inválido",
+  "price": -50
+}
