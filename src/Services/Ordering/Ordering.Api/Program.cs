@@ -1,3 +1,4 @@
+using BuildingBlocks.Exceptions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Api.Endpoints;
@@ -5,12 +6,19 @@ using Ordering.Application;
 using Ordering.Application.Orders.EventHandlers;
 using Ordering.Infrastructure;
 using Ordering.Infrastructure.Persistence;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, config) =>
+    config.ReadFrom.Configuration(context.Configuration)
+          .WriteTo.Console());
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddOpenApi();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<OrderingDbContext>();
 
@@ -35,6 +43,7 @@ if (app.Environment.IsDevelopment())
     await db.Database.MigrateAsync();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.MapOrderEndpoints();
 app.MapHealthChecks("/health");

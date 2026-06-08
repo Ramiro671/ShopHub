@@ -1,0 +1,95 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotnetVersion: '10.0.x'
+
+stages:
+  - stage: Build_Test
+    displayName: 'Build & Test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Restore, Build, Test'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Instalar .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '$(dotnetVersion)'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Restaurar paquetes'
+            inputs:
+              command: 'restore'
+              projects: 'ShopHub.slnx'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Compilar solución'
+            inputs:
+              command: 'build'
+              projects: 'ShopHub.slnx'
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'Ejecutar tests con cobertura'
+            inputs:
+              command: 'test'
+              projects: 'tests/**/*.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/TestResults'
+
+          - task: PublishTestResults@2
+            displayName: 'Publicar resultados de tests'
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '$(Agent.TempDirectory)/TestResults/**/*.trx'
+              mergeTestResults: true
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publicar cobertura de código'
+            inputs:
+              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml'
+
+  - stage: Containerize
+    displayName: 'Containerize'
+    dependsOn: Build_Test
+    condition: succeeded()
+    jobs:
+      - job: DockerBuild
+        displayName: 'Build Docker Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build Catalog.Api'
+            inputs:
+              command: 'build'
+              Dockerfile: 'src/Services/Catalog/Catalog.Api/Dockerfile'
+              buildContext: '.'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Build Ordering.Api'
+            inputs:
+              command: 'build'
+              Dockerfile: 'src/Services/Ordering/Ordering.Api/Dockerfile'
+              buildContext: '.'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Build Payment.Worker'
+            inputs:
+              command: 'build'
+              Dockerfile: 'src/Services/Payment/Payment.Worker/Dockerfile'
+              buildContext: '.'
+              tags: |
+                $(Build.BuildId)
+                latest

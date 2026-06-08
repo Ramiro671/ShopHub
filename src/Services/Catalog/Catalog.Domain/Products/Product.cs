@@ -9,6 +9,7 @@ public class Product
     public string Name { get; private set; }
     public string Description { get; private set; }
     public decimal Price { get; private set; }
+    public string? ImageUrl { get; private set; }
 
     // Constructor privado: obliga a usar la fábrica Create.
     private Product(Guid id, string name, string description, decimal price)
@@ -38,6 +39,8 @@ public static Product Restore(Guid id, string name, string description, decimal 
         Description = Clean(description);
         Price = price;
     }
+
+    public void SetImageUrl(string url) => ImageUrl = url;
 
     private static void Validate(string name, decimal price)
     {

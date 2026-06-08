@@ -1,7 +1,6 @@
 using Catalog.Application.Products;
 using Catalog.Application.Products.Commands;
 using Catalog.Application.Products.Queries;
-using Catalog.Domain;
 using MediatR;
 
 namespace Catalog.Api.Endpoints;
@@ -23,30 +22,16 @@ public static class ProductEndpoints
 
         group.MapPost("/", async (CreateProductRequest request, IMediator mediator, CancellationToken ct) =>
         {
-            try
-            {
-                var created = await mediator.Send(
-                    new CreateProductCommand(request.Name, request.Description, request.Price), ct);
-                return Results.Created($"/products/{created.Id}", created);
-            }
-            catch (DomainException ex)
-            {
-                return Results.BadRequest(new { error = ex.Message });
-            }
+            var created = await mediator.Send(
+                new CreateProductCommand(request.Name, request.Description, request.Price), ct);
+            return Results.Created($"/products/{created.Id}", created);
         });
 
         group.MapPut("/{id:guid}", async (Guid id, UpdateProductRequest request, IMediator mediator, CancellationToken ct) =>
         {
-            try
-            {
-                var updated = await mediator.Send(
-                    new UpdateProductCommand(id, request.Name, request.Description, request.Price), ct);
-                return updated ? Results.NoContent() : Results.NotFound();
-            }
-            catch (DomainException ex)
-            {
-                return Results.BadRequest(new { error = ex.Message });
-            }
+            var updated = await mediator.Send(
+                new UpdateProductCommand(id, request.Name, request.Description, request.Price), ct);
+            return updated ? Results.NoContent() : Results.NotFound();
         });
 
         group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
