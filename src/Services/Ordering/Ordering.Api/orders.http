@@ -1,0 +1,50 @@
+@host = http://localhost:5102
+
+### Crear pedido
+POST {{host}}/orders
+Content-Type: application/json
+
+{
+  "customerEmail": "cliente@example.com",
+  "street": "Av. Reforma 123",
+  "city": "CDMX",
+  "state": "CDMX",
+  "country": "México",
+  "zipCode": "06600",
+  "items": [
+    {
+      "productId": "00000000-0000-0000-0000-000000000001",
+      "productName": "Laptop Gaming",
+      "unitPrice": 1299.99,
+      "currency": "USD",
+      "quantity": 1
+    }
+  ]
+}
+
+### Listar pedidos
+GET {{host}}/orders
+
+### Obtener pedido por Id
+GET {{host}}/orders/{{orderId}}
+
+### Agregar item
+POST {{host}}/orders/{{orderId}}/items
+Content-Type: application/json
+
+{
+  "productId": "00000000-0000-0000-0000-000000000002",
+  "productName": "Mouse Inalámbrico",
+  "unitPrice": 49.99,
+  "currency": "USD",
+  "quantity": 2
+}
+
+### Pagar pedido
+POST {{host}}/orders/{{orderId}}/pay
+
+### Cancelar pedido
+POST {{host}}/orders/{{orderId}}/cancel
+
+### Health check
+GET {{host}}/health
