@@ -1,6 +1,8 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Ordering.Api.Endpoints;
 using Ordering.Application;
+using Ordering.Application.Orders.EventHandlers;
 using Ordering.Infrastructure;
 using Ordering.Infrastructure.Persistence;
 
@@ -12,13 +14,22 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<OrderingDbContext>();
 
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<PaymentSucceededConsumer>();
+
+    x.UsingInMemory((context, cfg) =>
+    {
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 
-    // Aplica migraciones pendientes automáticamente en desarrollo
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<OrderingDbContext>();
     await db.Database.MigrateAsync();
