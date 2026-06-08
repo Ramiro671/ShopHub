@@ -1,5 +1,8 @@
 using Catalog.Application.Products;
+using Catalog.Application.Products.Commands;
+using Catalog.Application.Products.Queries;
 using Catalog.Domain;
+using MediatR;
 
 namespace Catalog.Api.Endpoints;
 
@@ -7,43 +10,37 @@ public static class ProductEndpoints
 {
     public static void MapProductEndpoints(this IEndpointRouteBuilder app)
     {
-        // Agrupa todas las rutas bajo /products.
         var group = app.MapGroup("/products").WithTags("Products");
 
-        // Fíjate en el patrón de TODOS los endpoints:
-        //  - son async
-        //  - reciben IProductService inyectado automáticamente
-        //  - reciben y propagan el CancellationToken (ct) del request
+        group.MapGet("/", async (IMediator mediator, CancellationToken ct) =>
+            Results.Ok(await mediator.Send(new GetProductsQuery(), ct)));
 
-        group.MapGet("/", async (IProductService service, CancellationToken ct) =>
-            Results.Ok(await service.GetAllAsync(ct)));
-
-        group.MapGet("/{id:guid}", async (Guid id, IProductService service, CancellationToken ct) =>
+        group.MapGet("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
         {
-            var product = await service.GetByIdAsync(id, ct);
+            var product = await mediator.Send(new GetProductByIdQuery(id), ct);
             return product is null ? Results.NotFound() : Results.Ok(product);
         });
 
-        group.MapPost("/", async (CreateProductRequest request, IProductService service, CancellationToken ct) =>
+        group.MapPost("/", async (CreateProductRequest request, IMediator mediator, CancellationToken ct) =>
         {
             try
             {
-                var created = await service.CreateAsync(request, ct);
+                var created = await mediator.Send(
+                    new CreateProductCommand(request.Name, request.Description, request.Price), ct);
                 return Results.Created($"/products/{created.Id}", created);
             }
             catch (DomainException ex)
             {
-                // Por ahora atrapamos la excepción aquí. En una fase posterior lo
-                // centralizaremos con IExceptionHandler para no repetir este try/catch.
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
 
-        group.MapPut("/{id:guid}", async (Guid id, UpdateProductRequest request, IProductService service, CancellationToken ct) =>
+        group.MapPut("/{id:guid}", async (Guid id, UpdateProductRequest request, IMediator mediator, CancellationToken ct) =>
         {
             try
             {
-                var updated = await service.UpdateAsync(id, request, ct);
+                var updated = await mediator.Send(
+                    new UpdateProductCommand(id, request.Name, request.Description, request.Price), ct);
                 return updated ? Results.NoContent() : Results.NotFound();
             }
             catch (DomainException ex)
@@ -52,9 +49,9 @@ public static class ProductEndpoints
             }
         });
 
-        group.MapDelete("/{id:guid}", async (Guid id, IProductService service, CancellationToken ct) =>
+        group.MapDelete("/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
         {
-            var deleted = await service.DeleteAsync(id, ct);
+            var deleted = await mediator.Send(new DeleteProductCommand(id), ct);
             return deleted ? Results.NoContent() : Results.NotFound();
         });
     }

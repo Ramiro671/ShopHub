@@ -1,15 +1,24 @@
-using Catalog.Application.Products;
+using Catalog.Application.Behaviors;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Catalog.Application;
 
-// Cada capa registra sus propios servicios. Así Program.cs queda limpio
-// y la capa es autónoma (sabe qué necesita inyectar).
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IProductService, ProductService>();
+        var assembly = typeof(DependencyInjection).Assembly;
+
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(assembly);
+            cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+            cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
+
+        services.AddValidatorsFromAssembly(assembly);
+
         return services;
     }
 }
